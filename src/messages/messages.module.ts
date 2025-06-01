@@ -8,9 +8,10 @@ import { ChatGateway } from './gateways/chat.gateway';
 import { AuthModule } from '../auth/auth.module';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Message]), UsersModule, AuthModule],
+  imports: [TypeOrmModule.forFeature([Message, User]), UsersModule, AuthModule],
   controllers: [MessagesController],
   providers: [
     MessagesService,

@@ -732,6 +732,14 @@
     path-to-regexp "8.2.0"
     tslib "2.8.1"
 
+"@nestjs/platform-socket.io@^11.1.2":
+  version "11.1.2"
+  resolved "https://registry.yarnpkg.com/@nestjs/platform-socket.io/-/platform-socket.io-11.1.2.tgz#648273f1131d0572e71eb1f5880948d874fb8274"
+  integrity sha512-IkeDPRRddY0In6lE+5H/DJodtF5cEx+ga+GWehs4Il5Y3kK7MVR2/WgUABAhyRsbJYOhIhZD7Dai0V2t9ref1Q==
+  dependencies:
+    socket.io "4.8.1"
+    tslib "2.8.1"
+
 "@nestjs/schematics@^10.0.0", "@nestjs/schematics@^10.0.1":
   version "10.2.3"
   resolved "https://registry.npmjs.org/@nestjs/schematics/-/schematics-10.2.3.tgz"
@@ -4757,7 +4765,7 @@ socket.io-parser@~4.2.4:
     "@socket.io/component-emitter" "~3.1.0"
     debug "~4.3.1"
 
-socket.io@^4.8.1:
+socket.io@4.8.1, socket.io@^4.8.1:
   version "4.8.1"
   resolved "https://registry.yarnpkg.com/socket.io/-/socket.io-4.8.1.tgz#fa0eaff965cc97fdf4245e8d4794618459f7558a"
   integrity sha512-oZ7iUCxph8WYRHHcjBEc9unw3adt5CmSNlppj/5Q4k2RIrhl8Z5yY2Xr4j9zj0+wzVZ0bxmYoGSzKJnRl6A4yg==
