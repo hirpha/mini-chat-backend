@@ -138,6 +138,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return response;
   }
 
+  @SubscribeMessage('typing')
+  async handleTyping(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = await this.authenticateClient(client);
+    const { receiverId, isTyping } = data;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    console.log;
+    console.log('user typing:', receiverId);
+
+    this.server.to(receiverId).emit('typing', {
+      senderId: user.id, // Assuming you have user ID attached to socket
+      isTyping: isTyping,
+    });
+  }
+
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('markAsRead')
   async handleMarkAsRead(
