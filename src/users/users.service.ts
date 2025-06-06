@@ -25,6 +25,14 @@ export class UsersService {
     return user;
   }
 
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.id IN (:...ids)', { ids })
+      .getMany();
+  }
+
   async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { phoneNumber } });
   }
@@ -51,6 +59,7 @@ export class UsersService {
   async updateLastActive(id: string): Promise<void> {
     await this.usersRepository.update(id, { lastActiveAt: new Date() });
   }
+
   async searchUsers(query: string): Promise<User[]> {
     return this.usersRepository
       .createQueryBuilder('user')
@@ -70,11 +79,17 @@ export class UsersService {
       isVerified: user.isVerified,
       createdAt: user.createdAt,
       lastActiveAt: user.lastActiveAt,
+      updatedAt: user.updatedAt,
       status: this.getUserStatus(user.lastActiveAt),
     };
   }
 
-  private getUserStatus(lastActive: Date): 'online' | 'offline' {
+  private getUserStatus(lastActive: Date | null): 'online' | 'offline' {
+    // Handle null case - consider user offline if we don't have last active data
+    if (!lastActive) {
+      return 'offline';
+    }
+
     const inactiveMinutes =
       (new Date().getTime() - lastActive.getTime()) / 60000;
     return inactiveMinutes < 5 ? 'online' : 'offline';

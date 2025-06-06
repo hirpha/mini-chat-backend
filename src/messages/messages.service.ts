@@ -67,6 +67,7 @@ export class MessagesService {
     }
 
     const messages = await query.getMany();
+
     return messages.map((message) => this.toMessageResponseDto(message));
   }
 
@@ -96,10 +97,12 @@ export class MessagesService {
     });
   }
 
-  toMessageResponseDto(message: Message): MessageResponseDto {
-    return {
+  toMessageResponseDto(message: any): MessageResponseDto {
+    const _message = {
       id: message.id,
       content: message.content,
+      senderId: message.sender.id,
+      receiverId: message.receiver.id,
       sender: {
         id: message.sender.id,
         name: message.sender.name,
@@ -114,5 +117,7 @@ export class MessagesService {
       isRead: message.isRead,
       readAt: message.readAt,
     };
+    console.log(_message);
+    return _message;
   }
 }

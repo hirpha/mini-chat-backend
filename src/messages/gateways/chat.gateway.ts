@@ -16,6 +16,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../../users/users.service';
+import { ConfigService } from '@nestjs/config';
 
 @WebSocketGateway({
   cors: {
@@ -31,9 +32,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly messagesService: MessagesService,
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
+    private readonly configService: ConfigService, // Assuming you have a ConfigService for accessing environment variables
   ) {}
 
   async handleConnection(client: Socket) {
+    console.log(`Client connecting: ${client.client}`);
     try {
       const user = await this.authenticateClient(client);
       client.join(user.id);
@@ -49,13 +52,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Client disconnected: ${client.id}`);
   }
 
-  @UseGuards(WsJwtGuard)
+  // @UseGuards(WsJwtGuard)
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @MessageBody() createMessageDto: CreateMessageDto,
-    @CurrentUser() user: User,
+
     @ConnectedSocket() client: Socket,
   ) {
+    const user = await this.authenticateClient(client);
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    console.log(user);
+    console.log('Received message:', createMessageDto);
+
     const message = await this.messagesService.create(user, createMessageDto);
     const response = this.messagesService.toMessageResponseDto(message);
 
@@ -76,22 +86,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private async authenticateClient(client: Socket): Promise<User> {
-    const authToken = client.handshake.auth.token;
+    const authToken = client.handshake.auth?.token;
 
     if (!authToken) {
       throw new Error('Authentication token not provided');
     }
 
     try {
-      const payload = this.jwtService.verify(authToken);
-      const user = await this.usersService.findById(payload.sub);
+      // Reuse JwtStrategy logic
+      const payload = this.jwtService.verify(authToken, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
 
+      // Validate user (same as in JwtStrategy)
+      const user = await this.usersService.findById(payload.sub);
       if (!user) {
         throw new Error('User not found');
       }
 
       return user;
     } catch (error) {
+      console.error('JWT verification failed:', error.message);
       throw new Error('Invalid authentication token');
     }
   }

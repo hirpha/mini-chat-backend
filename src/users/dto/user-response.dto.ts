@@ -23,6 +23,9 @@ export class UserResponseDto {
   lastActiveAt: Date;
 
   @Expose()
+  updatedAt: Date;
+
+  @Expose()
   @Type(() => String)
   status?: 'online' | 'offline';
 }

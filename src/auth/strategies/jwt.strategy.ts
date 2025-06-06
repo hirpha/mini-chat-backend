@@ -4,18 +4,22 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AuthService } from '../auth.service';
 import { User } from '../../users/entities/user.entity';
 import { ConfigService } from '@nestjs/config';
-import { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
+import { AuthGuard } from '@nestjs/passport';
+
+interface JwtPayload {
+  phoneNumber: string; // (or whatever your JWT payload contains)
+  sub?: string; // Optional user ID (standard JWT field)
+}
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     private authService: AuthService,
     private configService: ConfigService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (request: RequestWithUser) => {
-          // Now properly typed
+        (request) => {
           return (
             request?.cookies?.access_token ||
             request?.headers?.authorization?.split(' ')[1]
@@ -27,14 +31,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any): Promise<User> {
+  async validate(payload: JwtPayload): Promise<User> {
     const user = await this.authService.validateUser(payload.phoneNumber);
     if (!user) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Invalid user');
     }
-    return user;
+    return user; // Becomes `request.user`
   }
 }
 
-// The guard remains unchanged
-export class JwtAuthGuard extends PassportStrategy(JwtStrategy) {}
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {} // Uses the 'jwt' strategy

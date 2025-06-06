@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 
-class UserInfoDto {
+export class UserInfoDto {
   @Expose()
   id: string;
 
@@ -8,7 +8,7 @@ class UserInfoDto {
   name: string;
 
   @Expose()
-  avatar: string;
+  avatar: string | null;
 }
 
 export class MessageResponseDto {
@@ -17,6 +17,12 @@ export class MessageResponseDto {
 
   @Expose()
   content: string;
+
+  @Expose()
+  senderId: string;
+
+  @Expose()
+  receiverId: string;
 
   @Expose()
   @Type(() => UserInfoDto)
