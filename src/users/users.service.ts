@@ -56,8 +56,35 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async updateLastActive(id: string): Promise<void> {
-    await this.usersRepository.update(id, { lastActiveAt: new Date() });
+  async updateLastActive(userId: string, date: Date): Promise<void> {
+    await this.usersRepository.update(userId, { lastActiveAt: date });
+  }
+
+  async changeToOffline(userId: string): Promise<void> {
+    await this.usersRepository.update(userId, { isOnline: false });
+  }
+
+  async changeToOnline(userId: string): Promise<void> {
+    await this.usersRepository.update(userId, { isOnline: true });
+  }
+
+  async getOnlineStatus(
+    userId: string,
+  ): Promise<{ isOnline: boolean; lastActiveAt: Date }> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // You might want to adjust this threshold (e.g., 5 minutes)
+    const isOnline = user.lastActiveAt
+      ? new Date().getTime() - user.lastActiveAt.getTime() < 5 * 60 * 1000
+      : false;
+
+    return {
+      isOnline,
+      lastActiveAt: user.lastActiveAt,
+    };
   }
 
   async searchUsers(query: string): Promise<User[]> {

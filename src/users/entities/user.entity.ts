@@ -33,4 +33,7 @@ export class User {
 
   @Column({ nullable: true })
   lastActiveAt: Date;
+
+  @Column({ nullable: true })
+  isOnline: boolean;
 }

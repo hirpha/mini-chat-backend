@@ -17,7 +17,6 @@ import { User } from '../../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../../users/users.service';
 import { ConfigService } from '@nestjs/config';
-
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -28,19 +27,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  // Track connected users
+  private connectedUsers: Map<string, Socket[]> = new Map();
+
   constructor(
     private readonly messagesService: MessagesService,
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
-    private readonly configService: ConfigService, // Assuming you have a ConfigService for accessing environment variables
+    private readonly configService: ConfigService,
   ) {}
 
   async handleConnection(client: Socket) {
-    console.log(`Client connecting: ${client.client}`);
     try {
       const user = await this.authenticateClient(client);
+
+      // Add user to connected users map
+      this.addConnectedUser(user.id, client);
+
+      // Update last active time
+      await this.usersService.updateLastActive(user.id, new Date());
+
       client.join(user.id);
       client.join('all');
+
+      // Notify others that this user is online
+      this.server.emit('userOnline', { userId: user.id });
+      this.usersService.changeToOnline(user.id);
+
       console.log(`Client connected: ${user.id}`);
     } catch (error) {
       console.error('Authentication failed:', error.message);
@@ -48,9 +61,59 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+  async handleDisconnect(client: Socket) {
+    try {
+      const user = await this.authenticateClient(client);
+
+      // Remove client from connected users
+      this.removeConnectedUser(user.id, client);
+
+      // If no more connections for this user, mark as offline
+      if (!this.connectedUsers.has(user.id)) {
+        await this.usersService.updateLastActive(user.id, new Date());
+        this.server.emit('userOffline', { userId: user.id });
+        this.usersService.changeToOffline(user.id);
+      }
+
+      console.log(`Client disconnected: ${user.id}`);
+    } catch (error) {
+      console.error('Error during disconnect:', error.message);
+    }
   }
+
+  // Add a connected user
+  private addConnectedUser(userId: string, client: Socket) {
+    if (!this.connectedUsers.has(userId)) {
+      this.connectedUsers.set(userId, []);
+    }
+    this.connectedUsers.get(userId).push(client);
+  }
+
+  // Remove a connected user
+  private removeConnectedUser(userId: string, client: Socket) {
+    const userClients = this.connectedUsers.get(userId);
+    if (userClients) {
+      const index = userClients.indexOf(client);
+      if (index > -1) {
+        userClients.splice(index, 1);
+      }
+      if (userClients.length === 0) {
+        this.connectedUsers.delete(userId);
+      }
+    }
+  }
+
+  // Check if a user is online
+  isUserOnline(userId: string): boolean {
+    return this.connectedUsers.has(userId);
+  }
+
+  // Get all online users
+  getOnlineUsers(): string[] {
+    return Array.from(this.connectedUsers.keys());
+  }
+
+  // ... rest of your existing code ...
 
   // @UseGuards(WsJwtGuard)
   @SubscribeMessage('sendMessage')
@@ -63,7 +126,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!user) {
       throw new Error('User not authenticated');
     }
-    console.log(user);
+    console.log;
     console.log('Received message:', createMessageDto);
 
     const message = await this.messagesService.create(user, createMessageDto);

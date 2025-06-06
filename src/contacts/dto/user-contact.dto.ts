@@ -11,5 +11,6 @@ export class UserContactDto {
     createdAt: Date;
     isFromMe: boolean;
   } | null;
+  isOnline?: boolean;
   unreadCount?: number;
 }

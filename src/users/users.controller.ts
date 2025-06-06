@@ -19,11 +19,11 @@ import { User } from './entities/user.entity';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Get('me')
-  async getCurrentUser(@CurrentUser() user: User): Promise<UserResponseDto> {
-    await this.usersService.updateLastActive(user.id);
-    return this.usersService.toUserResponseDto(user);
-  }
+  // @Get('me')
+  // async getCurrentUser(@CurrentUser() user: User): Promise<UserResponseDto> {
+  //   await this.usersService.updateLastActive(user.id);
+  //   return this.usersService.toUserResponseDto(user);
+  // }
 
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<UserResponseDto> {

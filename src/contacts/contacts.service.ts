@@ -117,6 +117,7 @@ export class ContactsService {
               }
             : null,
           unreadCount,
+          isOnline: user.isOnline || false, // Assuming isOnline is a field in User entity
         };
       });
 
