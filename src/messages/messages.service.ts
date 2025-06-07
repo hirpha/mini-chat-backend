@@ -71,6 +71,22 @@ export class MessagesService {
     return messages.map((message) => this.toMessageResponseDto(message));
   }
 
+  async markAllAsRead(userId: string, otherUserId: string): Promise<void> {
+    console.log('userId', userId, 'otherUserId', otherUserId);
+    const messages = await this.messagesRepository.find({
+      where: { receiver: { id: userId }, sender: { id: otherUserId } },
+    });
+    if (messages.length === 0) {
+      return;
+    }
+    for (const message of messages) {
+      message.isRead = true;
+      message.readAt = new Date();
+      await this.messagesRepository.save(message);
+    }
+
+    return;
+  }
   async markAsRead(messageId: string, userId: string): Promise<Message> {
     const message = await this.findMessageById(messageId);
 
@@ -107,11 +123,13 @@ export class MessagesService {
         id: message.sender.id,
         name: message.sender.name,
         avatar: message.sender.avatar,
+        phoneNumber: message.sender.phoneNumber,
       },
       receiver: {
         id: message.receiver.id,
         name: message.receiver.name,
         avatar: message.receiver.avatar,
+        phoneNumber: message.receiver.phoneNumber,
       },
       createdAt: message.createdAt,
       isRead: message.isRead,

@@ -19,6 +19,15 @@ import { User } from './entities/user.entity';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // In your controller
+  // @UseGuards(JwtAuthGuard)
+  @Get('chat-contacts')
+  async getChatUsers(@CurrentUser() user: User) {
+    console.log(user);
+    const currentUserId = user.id;
+    return this.usersService.getUsersWithLatestMessage(currentUserId);
+  }
+
   // @Get('me')
   // async getCurrentUser(@CurrentUser() user: User): Promise<UserResponseDto> {
   //   await this.usersService.updateLastActive(user.id);

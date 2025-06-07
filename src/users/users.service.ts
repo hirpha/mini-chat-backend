@@ -4,12 +4,16 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { UserContactDto } from 'src/contacts/dto/user-contact.dto';
+import { Message } from 'src/messages/entities/message.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Message)
+    private messagesRepository: Repository<Message>,
   ) {}
 
   async create(phoneNumber: string): Promise<User> {
@@ -87,6 +91,81 @@ export class UsersService {
     };
   }
 
+  async getUsersWithLatestMessage(
+    currentUserId: string,
+  ): Promise<UserContactDto[]> {
+    console.log('currentUserId', currentUserId);
+    // Get all distinct users who have exchanged messages with current user
+    const chatUsers = await this.usersRepository
+      .createQueryBuilder('user')
+      .select([
+        'user.id',
+        'user.phoneNumber',
+        'user.name',
+        'user.avatar',
+        'user.isOnline',
+        'user.lastActiveAt',
+        'user.isVerified',
+      ])
+      .innerJoin(
+        'messages',
+        'message',
+        '(message.senderId = user.id AND message.receiverId = :currentUserId) OR (message.senderId = :currentUserId AND message.receiverId = user.id)',
+        { currentUserId },
+      )
+      .where('user.id != :currentUserId')
+      .groupBy('user.id')
+      .getMany();
+
+    // For each user, get their latest message and unread count
+    const result = await Promise.all(
+      chatUsers.map(async (user) => {
+        const [latestMessage, unreadCount] = await Promise.all([
+          this.messagesRepository.findOne({
+            where: [
+              { sender: { id: currentUserId }, receiver: { id: user.id } },
+              { sender: { id: user.id }, receiver: { id: currentUserId } },
+            ],
+            order: { createdAt: 'DESC' },
+            relations: ['sender'],
+          }),
+          this.messagesRepository.count({
+            where: {
+              sender: { id: user.id },
+              receiver: { id: currentUserId },
+              isRead: false,
+            },
+          }),
+        ]);
+
+        return {
+          id: user.id,
+          phoneNumber: user.phoneNumber,
+          name: user.name,
+          avatar: user.avatar,
+          isRegistered: user.isVerified,
+          isInContacts: false, // Since you don't have a contacts entity
+          lastActiveAt: user.lastActiveAt,
+          isOnline: user.isOnline,
+          unreadCount,
+          lastMessage: latestMessage
+            ? {
+                content: latestMessage.content,
+                createdAt: latestMessage.createdAt,
+                isFromMe: latestMessage.sender.id === currentUserId,
+              }
+            : null,
+        };
+      }),
+    );
+
+    // Sort by latest message date (most recent first)
+    return result.sort((a, b) => {
+      const dateA = a.lastMessage?.createdAt?.getTime() || 0;
+      const dateB = b.lastMessage?.createdAt?.getTime() || 0;
+      return dateB - dateA;
+    });
+  }
   async searchUsers(query: string): Promise<User[]> {
     return this.usersRepository
       .createQueryBuilder('user')

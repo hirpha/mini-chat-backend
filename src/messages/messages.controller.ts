@@ -54,6 +54,14 @@ export class MessagesController {
     return this.messagesService.toMessageResponseDto(message);
   }
 
+  @Patch('all/read/:otherUserId')
+  async markAllAsRead(
+    @CurrentUser() user: User,
+    @Param('otherUserId') otherUserId: string,
+  ): Promise<void> {
+    await this.messagesService.markAllAsRead(user.id, otherUserId);
+  }
+
   @Get('unread/count')
   async getUnreadCount(@CurrentUser() user: User): Promise<{ count: number }> {
     const count = await this.messagesService.getUnreadCount(user.id);
