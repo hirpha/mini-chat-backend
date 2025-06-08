@@ -20,7 +20,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
-  const port = 3000;
+  const port = process.env.PORT || 3000;
   const ip = getLocalIp() || '0.0.0.0'; // fallback to all interfaces
 
   const server = await app.listen(port, ip);
